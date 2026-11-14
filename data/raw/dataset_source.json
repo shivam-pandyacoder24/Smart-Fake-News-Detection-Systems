@@ -1,0 +1,18 @@
+{
+  "dataset_id": "haoxianc/gilchr_fake-and-real-news-dataset",
+  "mirror_of": "Kaggle Fake and Real News Dataset",
+  "upstream_url": "https://www.kaggle.com/datasets/clmentbisaillon/fake-and-real-news-dataset",
+  "mirror_url": "https://huggingface.co/datasets/haoxianc/gilchr_fake-and-real-news-dataset",
+  "mirror_license": "MIT (see dataset card and LICENSE on Hugging Face)",
+  "mirror_label_mapping": {
+    "0": "Real",
+    "1": "Fake"
+  },
+  "project_label_mapping": {
+    "0": "Fake",
+    "1": "Real"
+  },
+  "rows": 44898,
+  "fake_rows": 23481,
+  "real_rows": 21417
+}

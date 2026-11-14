@@ -1,0 +1,25 @@
+{
+  "selected_model": "Logistic Regression",
+  "label_map": {
+    "0": "Fake",
+    "1": "Real"
+  },
+  "random_state": 42,
+  "test_size": 0.2,
+  "total_rows": 38827,
+  "train_rows": 31061,
+  "test_rows": 7766,
+  "tfidf_features": 80000,
+  "tfidf_config": {
+    "ngram_range": [
+      1,
+      2
+    ],
+    "max_features": 80000,
+    "min_df": 2,
+    "max_df": 0.95,
+    "sublinear_tf": true
+  },
+  "trained_at_utc": "2026-11-14T21:03:59.466716+00:00",
+  "selection_rule": "Highest macro-F1; accuracy breaks ties."
+}

@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+kaggle.json
+**/kaggle.json
+
+# Local dataset files (download separately; respect dataset terms)
+data/raw/*.csv
+data/raw/*.zip
+data/processed/*.csv
+data/processed/*.metadata.json
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Generated model artefacts and evaluation outputs are intentionally trackable
+# after training so the public submission can include its measured evidence.
+
+# Local Streamlit files
+.streamlit/secrets.toml
+.DS_Store
