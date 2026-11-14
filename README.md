@@ -68,7 +68,11 @@ Application screenshots are in `screenshots/`. The browser demonstration is [dem
 
 ## Live deployment
 
-The application is ready for Streamlit Community Cloud deployment. The repository owner must sign in at [share.streamlit.io](https://share.streamlit.io/), connect this repository, choose branch `main`, and set the main file to `app/streamlit_app.py`. **A live application URL is not claimed yet**; add it here only after deployment succeeds and the public URL is verified.
+<https://newsguard-shivam.streamlit.app/>
+
+**Live Streamlit application:** [Open NewsGuard](https://newsguard-shivam.streamlit.app/)
+
+The application is deployed on Streamlit Community Cloud from this repository's `main` branch, using `app/streamlit_app.py` as its entry point. The public URL was supplied by the project owner. Check the live app before evaluation because availability can depend on the hosting service.
 
 ## Limitations
 
