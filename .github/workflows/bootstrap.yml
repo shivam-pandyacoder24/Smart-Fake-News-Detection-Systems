@@ -1,0 +1,116 @@
+name: Bootstrap, train, evaluate and publish NewsGuard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "source_bundle.*.b64"
+      - ".github/workflows/bootstrap.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: newsguard-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  build-train-evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Reconstruct and extract full project source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat source_bundle.*.b64 > /tmp/newsguard.tar.xz.b64
+          base64 --decode /tmp/newsguard.tar.xz.b64 > /tmp/newsguard.tar.xz
+          tar -xJf /tmp/newsguard.tar.xz --strip-components=1
+          rm -f source_bundle.*.b64 /tmp/newsguard.tar.xz.b64 /tmp/newsguard.tar.xz
+          test -s app/streamlit_app.py
+          test -s src/train_model.py
+          test -s requirements.txt
+          test -s Project_Report.pdf
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install "playwright>=1.50,<2"
+          python -m playwright install --with-deps chromium
+
+      - name: Download the labeled Fake/Real news dataset
+        run: python scripts/download_dataset.py --source huggingface
+
+      - name: Prepare the dataset and run automated tests
+        run: |
+          python scripts/prepare_data.py
+          python scripts/smoke_check.py
+          pytest -q
+
+      - name: Train and compare Logistic Regression and Multinomial Naive Bayes
+        run: python -m src.train_model
+
+      - name: Launch Streamlit and capture genuine UI screenshots and demo video
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup streamlit run app/streamlit_app.py \
+            --server.address 127.0.0.1 --server.port 8501 --server.headless true \
+            > /tmp/newsguard-streamlit.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8501/_stcore/health >/dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8501/_stcore/health
+          python scripts/capture_app_evidence.py
+          test -s demo/NewsGuard_Demo.webm
+          test -s screenshots/01_news_detector.png
+          test -s screenshots/03_sample_prediction.png
+
+      - name: Verify actual trained artifacts, metrics, screenshots and report
+        run: |
+          test -s models/model.joblib
+          test -s models/tfidf_vectorizer.joblib
+          test -s models/metadata.json
+          test -s outputs/evaluation_results/model_metrics.json
+          test -s outputs/evaluation_results/model_comparison.csv
+          test -s outputs/evaluation_results/evaluation_summary.md
+          test -s outputs/visualizations/model_comparison.png
+          test -s Project_Report.pdf
+
+      - name: Publish trained model and all generated evidence to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git add -f models/model.joblib models/tfidf_vectorizer.joblib data/raw/dataset_source.json
+          git diff --cached --quiet || git commit -m "Publish trained NewsGuard models, metrics, report and demo [skip ci]"
+          git push origin HEAD:main
+
+      - name: Preserve evaluation evidence as a workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newsguard-training-evidence
+          path: |
+            Project_Report.pdf
+            models/
+            outputs/
+            screenshots/
+            demo/
+          if-no-files-found: warn
+          retention-days: 30
