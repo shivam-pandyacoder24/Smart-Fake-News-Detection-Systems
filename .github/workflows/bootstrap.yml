@@ -118,77 +118,132 @@ jobs:
           test -s Project_Report.pdf
 
       - name: Refresh submission status and demo documentation
+        shell: bash
         run: |
-          python - <<'PY'
-          from pathlib import Path
+          cat > README.md <<'EOF'
+          # NewsGuard — Smart Fake News Detection System
 
-          readme = Path("README.md")
-          source = readme.read_text(encoding="utf-8")
-          start = source.index("## Automated training and evidence generation")
-          end = source.index("\n## Deployment", start)
-          refreshed = """## Automated training and evidence generation
+          **Major Project | AI/ML with Python | Python · NLP · TF-IDF · Scikit-learn · Streamlit**
 
-          The active GitHub Actions workflow is `.github/workflows/bootstrap.yml`. It reconstructs the checked-in source package, downloads the public Fake/Real dataset mirror, prepares the data, runs automated tests, trains and compares both classifiers, regenerates the PDF and metrics, starts Streamlit, captures application screenshots and records the browser demonstration. It then commits the source tree, saved models, evaluation outputs and evidence to `main`.
+          NewsGuard is an educational text-classification system that accepts a news headline or article and estimates whether its textual patterns resemble examples labeled **Fake** or **Real** in a labeled training corpus.
 
-          To repeat the workflow, open the repository's **Actions** tab, select **Bootstrap, train, evaluate and publish NewsGuard**, and choose **Run workflow**. The workflow requires no Kaggle API secret for the Hugging Face mirror download path.
+          > **Responsible use:** This model is not a definitive fact-checker. It learns patterns from historical training examples and cannot independently verify claims, sources, citations or breaking news. Predictions can be wrong.
 
-          ## Measured evaluation results
+          ## Dataset and attribution
 
-          The current held-out test evaluation contains 7,766 articles. Logistic Regression was selected by macro-F1:
+          - Original source: [Fake and Real News Dataset by Clément Bisaillon (Kaggle)](https://www.kaggle.com/datasets/clmentbisaillon/fake-and-real-news-dataset)
+          - Download mirror: [haoxianc/gilchr_fake-and-real-news-dataset (Hugging Face)](https://huggingface.co/datasets/haoxianc/gilchr_fake-and-real-news-dataset)
+          - Fields include title, article text, subject, date and target label.
+          - The mirror's labels are `0 = Real`, `1 = Fake`; the downloader converts these into the application's mapping `0 = Fake`, `1 = Real`.
+          - The raw CSV is downloaded at build time and is not redistributed in this repository. Dataset attribution and download instructions are in `data/README.md`; provenance is recorded in `data/raw/dataset_source.json`.
+
+          ## Machine-learning methodology
+
+          1. Handle missing content and labels, normalize text, and remove duplicate article records.
+          2. Explore class distribution and article-length patterns.
+          3. Split the cleaned corpus into stratified 80% train and 20% test partitions (random seed 42).
+          4. Fit TF-IDF on the training partition only; transform test and user-submitted text with the fitted vectorizer to prevent data leakage.
+          5. Train Logistic Regression and Multinomial Naive Bayes on the same feature matrix.
+          6. Compare accuracy, macro precision, macro recall, macro F1, classification reports and confusion matrices.
+          7. Select by macro F1, save the estimator and fitted TF-IDF vectorizer with Joblib, and load the saved artifacts in Streamlit without retraining at inference time.
+
+          ## Measured held-out results
+
+          The held-out evaluation contains **7,766 articles**. The selected model is **Logistic Regression**, which achieved the higher macro F1.
 
           | Model | Accuracy | Macro precision | Macro recall | Macro F1 |
           |---|---:|---:|---:|---:|
-          | Logistic Regression | 99.21% | 99.23% | 99.19% | 99.21% |
+          | Logistic Regression | **99.21%** | **99.23%** | **99.19%** | **99.21%** |
           | Multinomial Naive Bayes | 96.05% | 96.03% | 96.01% | 96.02% |
 
-          The cleaned corpus contains 38,827 articles (17,901 Fake and 20,926 Real). See `outputs/evaluation_results/model_metrics.json`, the confusion matrices and `Project_Report.pdf` for the full results and interpretation.
+          The cleaned corpus contains **38,827 articles**: 17,901 Fake and 20,926 Real. The preprocessing step removed 6,071 duplicate articles. Detailed values, classification reports and confusion matrices are in `outputs/evaluation_results/`; charts are in `outputs/visualizations/`.
+
+          ## Run locally
+
+          ```bash
+          python -m venv .venv
+          # Windows: .venv\\Scripts\\activate
+          # macOS/Linux:
+          source .venv/bin/activate
+          pip install -r requirements.txt
+          python scripts/download_dataset.py --source huggingface
+          python scripts/prepare_data.py
+          python scripts/smoke_check.py
+          pytest -q
+          python -m src.train_model
+          streamlit run app/streamlit_app.py
+          ```
+
+          ## Project contents
+
+          - `app/streamlit_app.py`: interactive News Detector, Model Dashboard, and Methodology & Limitations views.
+          - `src/`: preprocessing, TF-IDF/model training, report generation and plotting.
+          - `scripts/`: dataset download, data preparation, smoke checks and application evidence capture.
+          - `models/model.joblib` and `models/tfidf_vectorizer.joblib`: selected trained estimator and fitted vectorizer.
+          - `outputs/evaluation_results/`: measured metrics and model comparison.
+          - `outputs/visualizations/`: class distribution, article lengths, comparison and confusion-matrix charts.
+          - `Project_Report.pdf`: project report generated from the actual held-out evaluation.
+          - `screenshots/` and `demo/`: genuine application screenshots and recorded browser walkthrough.
 
           ## Screenshots and demonstration
 
-          Genuine Streamlit screenshots are stored in `screenshots/`. The browser demonstration is committed at [demo/NewsGuard_Demo.webm](demo/NewsGuard_Demo.webm).
+          Application screenshots are in `screenshots/`. The browser demonstration is [demo/NewsGuard_Demo.webm](demo/NewsGuard_Demo.webm). A copy of the run evidence is also retained as the GitHub Actions artifact `newsguard-training-evidence`.
 
-          """
-          source = source[:start] + refreshed + source[end:]
-          readme.write_text(source, encoding="utf-8")
+          ## Live deployment
 
-          checklist = """# Major project submission checklist
+          The application is ready for Streamlit Community Cloud deployment. The repository owner must sign in at [share.streamlit.io](https://share.streamlit.io/), connect this repository, choose branch `main`, and set the main file to `app/streamlit_app.py`. **A live application URL is not claimed yet**; add it here only after deployment succeeds and the public URL is verified.
 
-          The project build and held-out evaluation completed successfully in GitHub Actions. The items below are checked only where generated files were verified by the workflow.
+          ## Limitations
+
+          - Dataset labels are inherited from the source corpus and are not independent fact-check verdicts.
+          - The historical English-language corpus has time, topic, geographic and publisher coverage limits.
+          - Satire, opinion, short headlines, breaking news and unfamiliar subjects may be misclassified.
+          - A prediction reflects learned text patterns; it is not proof of truth or a substitute for source verification.
+
+          ## References
+
+          - [Original Kaggle dataset](https://www.kaggle.com/datasets/clmentbisaillon/fake-and-real-news-dataset)
+          - [Hugging Face dataset mirror](https://huggingface.co/datasets/haoxianc/gilchr_fake-and-real-news-dataset)
+          - [Scikit-learn documentation](https://scikit-learn.org/stable/)
+          - [Streamlit documentation](https://docs.streamlit.io/)
+          - [Joblib documentation](https://joblib.readthedocs.io/)
+          EOF
+
+          cat > PROJECT_CHECKLIST.md <<'EOF'
+          # Major project submission checklist
+
+          Verified by the successful GitHub Actions build, training, application-capture and artifact-validation steps:
 
           - [x] Complete Python source code and Streamlit application
           - [x] Dataset source, attribution, label mapping and download instructions
-          - [x] Preprocessing, EDA, TF-IDF training-only fit, Logistic Regression and Multinomial Naive Bayes code
-          - [x] Saved selected model and fitted TF-IDF vectorizer using Joblib
-          - [x] Held-out accuracy, precision, recall, F1-score, classification reports and confusion matrices for both models
+          - [x] Preprocessing, EDA and duplicate/missing-value handling
+          - [x] TF-IDF fitted on training text only; no test-data leakage
+          - [x] Logistic Regression and Multinomial Naive Bayes implementations
+          - [x] Held-out accuracy, precision, recall, F1, classification reports and confusion matrices for both models
           - [x] Model comparison and documented Logistic Regression selection
-          - [x] EDA and model visualizations
-          - [x] Project_Report.pdf regenerated with the actual measured results
-          - [x] Genuine Streamlit screenshots including empty-input validation and a sample prediction
-          - [x] Browser demonstration recording at [demo/NewsGuard_Demo.webm](demo/NewsGuard_Demo.webm)
-          - [ ] Live Streamlit Community Cloud deployment and URL (requires the repository owner to authorize and publish the app)
+          - [x] Saved Joblib classifier and fitted TF-IDF vectorizer
+          - [x] Evaluation results and visualizations
+          - [x] Project_Report.pdf regenerated using actual measured results
+          - [x] Genuine Streamlit screenshots, including empty-input validation and a sample prediction
+          - [x] Browser demonstration recording: [demo/NewsGuard_Demo.webm](demo/NewsGuard_Demo.webm)
+          - [ ] Live Streamlit Community Cloud deployment and public URL (requires repository-owner authorization)
 
-          **Measured held-out results:** Logistic Regression accuracy 99.21%, macro-F1 99.21%; Multinomial Naive Bayes accuracy 96.05%, macro-F1 96.02%. The cleaned dataset contains 38,827 articles (17,901 Fake; 20,926 Real).
+          **Measured test results:** Logistic Regression accuracy 99.21%, macro-F1 99.21%; Multinomial Naive Bayes accuracy 96.05%, macro-F1 96.02%. The cleaned corpus contains 38,827 articles (17,901 Fake; 20,926 Real), with 7,766 held-out test articles.
 
-          The raw CSV files are not redistributed. The workflow downloads the public Hugging Face mirror of the Kaggle Fake and Real News Dataset, records provenance in `data/raw/dataset_source.json`, and documents the original dataset source in `data/README.md`.
+          Raw dataset CSV files are downloaded by the documented script rather than redistributed. Dataset attribution and provenance are included in `data/README.md` and `data/raw/dataset_source.json`.
 
-          **Important:** NewsGuard is a text-pattern classifier, not a fact-checking authority. Predictions can be wrong and must not be presented as verified factual findings.
-          """
-          Path("PROJECT_CHECKLIST.md").write_text(checklist, encoding="utf-8")
+          **Responsible interpretation:** NewsGuard is a text-pattern classifier, not a fact-checking authority. It may be incorrect, particularly for unfamiliar topics, satire and breaking news.
+          EOF
 
-          demo = """# Demonstration video
+          cat > DEMO_VIDEO.md <<'EOF'
+          # NewsGuard demonstration video
 
-          <badge>Recorded</badge>
+          **Recording:** [demo/NewsGuard_Demo.webm](demo/NewsGuard_Demo.webm)
 
-          The Playwright browser walkthrough was generated from the running Streamlit application after the saved model and TF-IDF vectorizer were loaded.
+          This browser walkthrough was recorded from the running Streamlit application after the saved model and TF-IDF vectorizer were loaded. It shows the detector interface, empty-input validation, a sample prediction, the model dashboard, and the methodology/limitations view.
 
-          **Video:** [NewsGuard_Demo.webm](demo/NewsGuard_Demo.webm)
-
-          The recording shows the detector interface, empty-input validation, a sample model prediction, the model dashboard and the methodology/limitations view.
-
-          The live Streamlit Community Cloud application is a separate deployment step and is not claimed as live until the repository owner authorizes and publishes it.
-          """
-          Path("DEMO_VIDEO.md").write_text(demo, encoding="utf-8")
-          PY
+          The public Streamlit Community Cloud deployment is a separate owner-authorized step; no live URL is claimed until it is deployed and verified.
+          EOF
 
       - name: Publish trained model and all generated evidence to main
         shell: bash
