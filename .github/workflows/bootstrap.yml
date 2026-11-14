@@ -50,14 +50,14 @@ jobs:
           from pathlib import Path
           app = Path("app/streamlit_app.py")
           source = app.read_text(encoding="utf-8")
-          needle = "import streamlit as st\\n\\nfrom src.preprocessing import clean_text"
+          needle = "import streamlit as st\n\nfrom src.preprocessing import clean_text"
           replacement = (
-              "import streamlit as st\\n\\n"
-              "# Streamlit executes this file from app/; add the repository root for src imports.\\n"
-              "import sys\\n"
-              "PROJECT_ROOT = Path(__file__).resolve().parents[1]\\n"
-              "if str(PROJECT_ROOT) not in sys.path:\\n"
-              "    sys.path.insert(0, str(PROJECT_ROOT))\\n\\n"
+              "import streamlit as st\n\n"
+              "# Streamlit executes this file from app/; add the repository root for src imports.\n"
+              "import sys\n"
+              "PROJECT_ROOT = Path(__file__).resolve().parents[1]\n"
+              "if str(PROJECT_ROOT) not in sys.path:\n"
+              "    sys.path.insert(0, str(PROJECT_ROOT))\n\n"
               "from src.preprocessing import clean_text"
           )
           if needle in source:
