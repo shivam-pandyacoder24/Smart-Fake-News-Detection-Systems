@@ -41,7 +41,7 @@ jobs:
           test -s app/streamlit_app.py
           test -s src/train_model.py
           test -s requirements.txt
-          test -s Project_Report.pdf
+          test -s src/report.py
 
       - name: Install dependencies
         run: |
