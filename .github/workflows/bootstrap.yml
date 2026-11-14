@@ -125,7 +125,7 @@ jobs:
           readme = Path("README.md")
           source = readme.read_text(encoding="utf-8")
           start = source.index("## Automated training and evidence generation")
-          end = source.index("\\n## Deployment", start)
+          end = source.index("\n## Deployment", start)
           refreshed = """## Automated training and evidence generation
 
           The active GitHub Actions workflow is `.github/workflows/bootstrap.yml`. It reconstructs the checked-in source package, downloads the public Fake/Real dataset mirror, prepares the data, runs automated tests, trains and compares both classifiers, regenerates the PDF and metrics, starts Streamlit, captures application screenshots and records the browser demonstration. It then commits the source tree, saved models, evaluation outputs and evidence to `main`.
